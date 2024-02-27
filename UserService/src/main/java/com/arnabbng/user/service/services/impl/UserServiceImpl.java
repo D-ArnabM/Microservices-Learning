@@ -5,6 +5,7 @@ import com.arnabbng.user.service.entities.Rating;
 import com.arnabbng.user.service.entities.User;
 import com.arnabbng.user.service.exceptions.ResourceNotFoundException;
 import com.arnabbng.user.service.external.services.HotelService;
+import com.arnabbng.user.service.external.services.RatingService;
 import com.arnabbng.user.service.repositories.UserRepository;
 import com.arnabbng.user.service.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private HotelService hotelService;
 
+    @Autowired
+    private RatingService ratingService;
+
     @Override
     public User saveUser(User user) {
         //Generating unique user Id
@@ -44,14 +48,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUser(String userId) {
         User user = userRepository.findById(userId).orElseThrow(()-> new ResourceNotFoundException("User with given Id is not found on server !!! : " + userId));
-        //get ratings for RATING-SERVICE using api of rating
-        Rating[] ratingsOfuser = restTemplate.getForObject("http://RATING-SERVICE/ratings/users/"+user.getUserId(), Rating[].class);
+
+        List<Rating> ratings = ratingService.getAllRatingsByUserId(userId).getBody();
         for (Rating r:
-                ratingsOfuser) {
+                ratings) {
             Hotel hotel = hotelService.getHotelByHotelId(r.getHotelId());
             r.setHotel(hotel);
         }
-        List<Rating> ratings = Arrays.asList(ratingsOfuser);
+
         user.setRatings(ratings);
         return user;
     }
